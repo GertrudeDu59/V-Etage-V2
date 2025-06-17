@@ -1,0 +1,17 @@
+.NavBar {
+    width: 100%;
+    height: 10vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    .logo {
+         width: clamp(150px, 15vw, 250px);
+         height: auto;
+         cursor: pointer;
+        img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+    }
+}
