@@ -1,30 +1,25 @@
-// Ip de gev
 const socket = io('http://localhost:3001');
 
 let lastVideoId = null;
 
 function getVideoId() {
-  const params = new URLSearchParams(window.location.search);
-  return params.get('v');
+  return new URLSearchParams(window.location.search).get('v');
 }
 
-function getTitleAndChannel(maxTries = 10, interval = 100) {
-  return new Promise((resolve, reject) => {
+function getTitleAndChannel(maxTries = 15, interval = 300) {
+  return new Promise((resolve) => {
     let tries = 0;
     function attempt() {
       const title = document.title.replace(' - YouTube', '').trim();
-      const channelElem = document.querySelector('#text-container yt-formatted-string');
-      const channel = channelElem?.textContent?.trim();
+      const channel = document.querySelector('#text-container yt-formatted-string')?.textContent?.trim();
 
       if (title && title !== 'YouTube' && channel) {
         resolve({ title, channel });
+      } else if (tries >= maxTries) {
+        resolve({ title: title || 'Inconnu', channel: channel || 'Inconnu' });
       } else {
         tries++;
-        if (tries >= maxTries) {
-          resolve({ title: title || 'Inconnu', channel: channel || 'Inconnu' });
-        } else {
-          setTimeout(attempt, interval);
-        }
+        setTimeout(attempt, interval);
       }
     }
     attempt();
@@ -35,18 +30,16 @@ function getThumbnail(videoId) {
   return new Promise((resolve) => {
     const maxRes = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
     const fallback = `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
-
     const img = new Image();
+
     img.onload = () => {
-      if (img.naturalWidth > 120 && img.naturalHeight > 90) {
-        resolve(maxRes);
-      } else {
-        resolve(fallback);
-      }
+      resolve(
+        img.naturalWidth > 120 && img.naturalHeight > 90
+          ? maxRes
+          : fallback
+      );
     };
-    img.onerror = () => {
-      resolve(fallback);
-    };
+    img.onerror = () => resolve(fallback);
     img.src = maxRes;
   });
 }
@@ -54,14 +47,16 @@ function getThumbnail(videoId) {
 async function sendVideoInfoIfNew() {
   const videoId = getVideoId();
   if (!videoId || videoId === lastVideoId) return;
-
   lastVideoId = videoId;
+
+
+  await new Promise((r) => setTimeout(r, 1200));
 
   const [info, thumbnail] = await Promise.all([
     getTitleAndChannel(),
-    getThumbnail(videoId)
+    getThumbnail(videoId),
   ]);
-  
+
   socket.emit('videoInfo', { ...info, thumbnail });
 }
 
@@ -71,6 +66,6 @@ setInterval(() => {
     lastUrl = location.href;
     sendVideoInfoIfNew();
   }
-}, 1000);
+}, 800);
 
 setTimeout(sendVideoInfoIfNew, 2000);
